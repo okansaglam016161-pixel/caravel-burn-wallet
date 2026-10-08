@@ -1,0 +1,23 @@
+[package]
+name = "rug"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# TEST ONLY — the code an attacker would swap in: the burn wallet's state layout plus a withdraw.
+# Never published.
+
+[workspace]
+
+[dependencies]
+tari_template_lib = { version = "0.34" }
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = 's'
+lto = true
+codegen-units = 1
+panic = 'abort'
+strip = true
