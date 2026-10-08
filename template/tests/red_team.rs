@@ -14,6 +14,8 @@ use tari_template_test_tooling::transaction::builder::{named_args::NamedArg, Mai
 use tari_template_test_tooling::transaction::{args, Transaction, TransactionBuilder};
 use tari_template_test_tooling::TemplateTest;
 
+mod common;
+
 const TARI: u64 = 1_000_000; // µTARI
 
 struct Actor {
@@ -28,8 +30,8 @@ fn actor(test: &mut TemplateTest) -> Actor {
 }
 
 fn new_test() -> TemplateTest {
-    TemplateTest::new(".", [
-        ".", "tests/templates/helpers", "tests/templates/owned_vault", "tests/templates/rug", "tests/templates/squatter",
+    common::template_test(&[
+        "tests/templates/helpers", "tests/templates/owned_vault", "tests/templates/rug", "tests/templates/squatter",
     ])
 }
 

@@ -15,6 +15,8 @@ use tari_template_test_tooling::transaction::builder::{named_args::NamedArg, Mai
 use tari_template_test_tooling::transaction::{args, Transaction, TransactionBuilder};
 use tari_template_test_tooling::TemplateTest;
 
+mod common;
+
 const TEMPLATE: &str = "CaravelBurnWallet";
 const TARI: u64 = 1_000_000; // µTARI
 
@@ -36,7 +38,7 @@ struct Setup {
 }
 
 fn setup() -> Setup {
-    let mut test = TemplateTest::new(".", [".", "tests/templates/helpers"]);
+    let mut test = common::template_test(&["tests/templates/helpers"]);
     let owner_proof = test.owner_proof();
     let wallet: ComponentAddress = test.call_function(TEMPLATE, "new", args![], vec![owner_proof]);
     Setup { test, wallet }

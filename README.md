@@ -1,6 +1,6 @@
 # Caravel Burn Wallet
 
-> **Testnet only. Work in progress.** Not yet published to any network.
+> **Testnet only.** Live on the Tari Ootle **esmeralda** testnet (see [Live deployment](#live-deployment)).
 
 A Tari Ootle template for a **deposit-only** TARI wallet with **no owner**. TARI sent here is
 locked forever. The balance and every deposit are public.
@@ -60,8 +60,8 @@ drain.
 
 | | |
 |---|---|
-| Template address | _to be filled at publish_ |
-| Component address | _to be filled at publish_ |
+| Template address | `template_f6bb3aa676b41c9d5748509dda66406e759d1b7fba5a83017cda88006b610282` |
+| Component address (the official burn wallet) | `component_2e91fb78b73440dd114bdbb887d256d760fa3be3276d7b833f4ab1b23d796029` |
 
 Read the component from any indexer (`GET /substates/<component address>`) and check:
 
@@ -70,7 +70,11 @@ Read the component from any indexer (`GET /substates/<component address>`) and c
    every other method is `DenyAll`. Nothing else is listed.
 3. **Template address** is the one above.
 4. The template's code is the source in this repository at the published commit
-   (`template/src/lib.rs`).
+   ([`6009072`](https://github.com/okansaglam016161-pixel/caravel-burn-wallet/commit/6009072531bfb7a94c6d7e719e5c03f5e7f94a98),
+   `template/src/lib.rs`), which the template's metadata names as its `commit_hash`.
+
+You can also run this repository's whole test suite against the exact on-chain binary (see
+[Live deployment](#live-deployment)).
 
 And read TARI itself (`GET /substates/resource_0101010101010101010101010101010101010101010101010101010101010101`):
 recall, freeze, burn and mint are `DenyAll` and their updaters are `Locked`.
@@ -96,6 +100,69 @@ The attacks are tests, in [`template/tests`](template/tests):
 - `red_team.rs`: the code swap (refused here, and shown to work against an owned vault); withdrawing,
   paying fees, recalling or freezing from another template; storing the vault in another component;
   changing TARI's rules; look-alike tokens and NFTs; spoofed `Deposit` events.
+
+## Live deployment
+
+Published on **esmeralda** on 2026-10-08, on Ootle 0.45.
+
+### The template
+
+| | |
+|---|---|
+| Template | `template_f6bb3aa676b41c9d5748509dda66406e759d1b7fba5a83017cda88006b610282` |
+| Transaction | `55ec0b7852546e34b7f588ea9021e47489126eb889d1469fd3adc3874dc1bdfd`, Commit / Accept, epoch 12007 |
+| Fee | 728,683 µT (0.728683 tTARI) |
+| Author | `20db90bffb62905d14b75369de9de8523d859bdec5f75e36929fbf9099781661` (the deployer) |
+| Source | commit [`6009072`](https://github.com/okansaglam016161-pixel/caravel-burn-wallet/commit/6009072531bfb7a94c6d7e719e5c03f5e7f94a98) |
+| Metadata hash | `1220d0bf4a3adc0ae9b1b92dfbb60d9a5c3cc555224ac78621a29a89c403fe83f47e` |
+| On-chain binary | 98,367 bytes, sha256 `75aed53ca643fd55e1e2f25bc4c5fb84c4f5f19d2aec1ee546f6e6cc7af86a5e` (identical on both public indexers) |
+
+The on-chain binary is the release WASM after the optimisation pass `tari publish` applies, so it
+is not byte-identical to `cargo build` output (112,785 bytes). Its ABI is exactly `new()`,
+`deposit(&mut self, bucket)`, `balance(&self)` and `total_deposited(&self)`, and the full test suite
+passes against it: download the binary and run
+
+```sh
+cd template
+BURN_WALLET_WASM=/path/to/onchain.wasm cargo test -- --test-threads=1
+```
+
+(the binary is the `binary` field of `GET /substates/template_f6bb…0282` on either indexer).
+
+### The burn wallet
+
+| | |
+|---|---|
+| Component | `component_2e91fb78b73440dd114bdbb887d256d760fa3be3276d7b833f4ab1b23d796029` |
+| Transaction | `578c07030139ce6c46c9521e257eec7accebc3a7345f59ae921254bfd25eced5`, Commit / Accept, epoch 12008 |
+| Fee | 1,775 µT |
+| Vault | `vault_2ea68bbb2339d1d930e35f011692c9e5dcdbf26a65008414ad3901c84d6055d0` (TARI) |
+
+Created with [`scripts/instantiate.py`](scripts/instantiate.py), which dry-runs `new()` before
+submitting it and requires a final Accept. Read live on both indexers after creation: owner rule
+`None`; method rules `deposit`, `balance`, `total_deposited` = `AllowAll`, default `DenyAll`;
+template address as above; vault empty and unfrozen.
+
+### Live pentest (dry runs only, nothing spent)
+
+Run against the live component on 2026-10-08, every transaction a dry run:
+
+| As | Attempt | Result |
+|---|---|---|
+| Deployer (the key that published and created it) | `UpdateComponentTemplate` onto another template | Refused: "You must be the owner to perform this action: native.component.update_template" |
+| Deployer | 14 withdraw-like and admin-like methods (`withdraw`, `withdraw_all`, `take`, `take_all`, `recall`, `burn`, `transfer`, `send`, `pay_fee`, `set_access_rules`, `set_owner_rule`, `set_owner`, `add_owner`, `upgrade`), with and without an amount, keeping any output | All 28 refused: "Function … not found" |
+| A fresh stranger key | The same code swap, and the same 28 calls | All refused, with the same reasons |
+| A stranger | Deposit 1 µT; deposit 1 tTARI | Accepted, one `Deposit` event each, from this component |
+| A stranger | Two deposits (2 µT, 3 µT) in one transaction | Accepted, two `Deposit` events |
+| A stranger | Deposit 0 | Refused: "Deposit must be greater than zero" |
+| A stranger | Deposit a non-TARI NFT (minted in the same transaction from the built-in NFT faucet) | Refused: "Only TARI can be deposited into the burn wallet" |
+
+The fresh stranger key signed first, which makes it the transaction's signer. The network refuses
+any transaction without a fee, so a second account, also not the deployer, paid the fee; the
+deployer's key was in none of the stranger transactions. Each run included a control call
+(`balance()`) that was accepted, so the refusals are the burn wallet's, not a broken transaction. TARI's own rules were re-read on both indexers the same day:
+no owner, no auth hook; recall, freeze, burn and mint `DenyAll`, deposit `AllowAll`, every one of
+those updaters `Locked`.
 
 ## Build and test
 
