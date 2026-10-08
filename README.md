@@ -164,6 +164,26 @@ deployer's key was in none of the stranger transactions. Each run included a con
 no owner, no auth hook; recall, freeze, burn and mint `DenyAll`, deposit `AllowAll`, every one of
 those updaters `Locked`.
 
+### First burn
+
+On 2026-10-08 the deployer locked **1,000 tTARI** in the burn wallet, in two transactions:
+
+| | Transaction | What | Fee |
+|---|---|---|---|
+| 1 | `3f06a9b6fe670956871581dd784237050c47d28ace0876fc61b347696b7b9f50` | The deployer made 1,000 tTARI of its confidential balance public, into its own account (a `StealthTransfer` revealing 1,000 tTARI, sent from the wallet daemon's UI) | 9,583 µT |
+| 2 | `c528fef567a5a1f0fd678985f83a733eddffe48cbc85d89346f0683927300153` | `account.withdraw(TARI, 1,000 tTARI)` → `deposit(bucket)` on the burn wallet, in one transaction | 2,363 µT |
+
+Both transactions are Commit / Accept on both public indexers, epoch 12015. Transaction 2 was
+dry-run first. It emits exactly one `CaravelBurnWallet.Deposit` event, from this component, with
+`amount` = `1000000000`. Read on both indexers afterwards:
+
+- The vault holds 1,000,000,000 µT revealed (`balance()` = 1,000 tTARI), with 0 locked.
+- The component state's `total_deposited` is 1,000,000,000 µT. The component is at version 1, so
+  this deposit is the only change since `new()`.
+- The deployer's balances add up. Confidential went down by 1,000,009,583 µT (the 1,000 tTARI plus
+  transaction 1's fee). Public went from 2,684,087 µT, up 1,000,000,000 µT, then down
+  1,000,002,363 µT, ending at 2,681,724 µT.
+
 ## Build and test
 
 ```sh
