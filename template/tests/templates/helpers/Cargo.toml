@@ -1,0 +1,23 @@
+[package]
+name = "test_helpers"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# TEST ONLY. A non-TARI token for the refusal test, and two attacks on the burn wallet's vault from
+# outside it (direct withdraw, TARI recall). Never published.
+
+[workspace]
+
+[dependencies]
+tari_template_lib = { version = "0.34" }
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = 's'
+lto = true
+codegen-units = 1
+panic = 'abort'
+strip = true
