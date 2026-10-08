@@ -15,6 +15,9 @@ tags = ["burn", "tari", "caravel"]
 category = "utility"
 documentation = "https://github.com/okansaglam016161-pixel/caravel-burn-wallet#readme"
 homepage = "https://github.com/okansaglam016161-pixel/caravel-burn-wallet"
+# The commit whose source produced the published WASM (it reaches only the metadata CBOR, never
+# the binary). Must be the full 40-hex SHA.
+commit_hash = "6009072531bfb7a94c6d7e719e5c03f5e7f94a98"
 
 [dependencies]
 tari_template_lib = { version = "0.34" }
