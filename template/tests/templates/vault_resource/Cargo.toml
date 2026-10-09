@@ -1,0 +1,24 @@
+[package]
+name = "vault_resource"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# TEST ONLY — attacks through the TARI ResourceManager: mint TARI from nothing, burn TARI, and open
+# or change TARI's deposit/withdraw/mint/burn/freeze access rules (the "make it unusable for future
+# deposits" and "mint" angles). All must be refused. Never published.
+
+[workspace]
+
+[dependencies]
+tari_template_lib = { version = "0.34" }
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = 's'
+lto = true
+codegen-units = 1
+panic = 'abort'
+strip = true

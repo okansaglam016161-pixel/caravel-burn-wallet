@@ -101,6 +101,21 @@ The attacks are tests, in [`template/tests`](template/tests):
   paying fees, recalling or freezing from another template; storing the vault in another component;
   changing TARI's rules; look-alike tokens and NFTs; spoofed `Deposit` events.
 
+After the first burn, the live component was red-teamed again — three independent reviewers working
+from the Ootle 0.45 and `development` engine source, with live dry runs against the deployed
+component (never a real attack transaction). They found no new way to take, freeze, mint or
+double-count the TARI, or to change the code, owner or rules. The new attacks are also tests:
+
+- `red_team_auth.rs`: `UpdateComponentTemplate` with a migration body, swapping to the same template,
+  seizing the component from outside via engine ops, method-name tricks, and nested cross-template
+  calls — none can escalate against an `OwnerRule::None` component.
+- `red_team_vault.rs`: naming the burn wallet as a fee payer, debiting its vault with a native
+  `pay_fee` or a proof-lock from another component, a confidential withdraw from outside, minting or
+  burning TARI, and changing TARI's (locked) access rules.
+- `red_team_runtime.rs`: that a dry run cannot bypass ownership, a deposit rolls back cleanly on a
+  later abort, a workspace bucket cannot be deposited twice, bucket splits conserve value, an
+  instruction flood does not corrupt state, and the vault cannot be driven as a foreign input.
+
 ## Live deployment
 
 Published on **esmeralda** on 2026-10-08, on Ootle 0.45.

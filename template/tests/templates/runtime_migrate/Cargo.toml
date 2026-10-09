@@ -1,0 +1,23 @@
+[package]
+name = "runtime_migrate"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# TEST ONLY — a target for the 0.45 migrate-on-swap path. Never published.
+
+[workspace]
+
+[dependencies]
+tari_template_lib = { version = "0.34" }
+minicbor = { version = "2.3", default-features = false, features = ["alloc", "derive"] }
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = 's'
+lto = true
+codegen-units = 1
+panic = 'abort'
+strip = true

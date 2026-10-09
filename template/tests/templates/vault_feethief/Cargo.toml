@@ -1,0 +1,24 @@
+[package]
+name = "vault_feethief"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# TEST ONLY — fee- and proof-based attacks on the burn wallet's vault that need a COMPONENT context,
+# plus a self-owned TARI vault as the CONTROL (the same move works when the vault really is ours).
+# Never published.
+
+[workspace]
+
+[dependencies]
+tari_template_lib = { version = "0.34" }
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = 's'
+lto = true
+codegen-units = 1
+panic = 'abort'
+strip = true

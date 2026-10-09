@@ -1,0 +1,23 @@
+[package]
+name = "auth_hijack"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# TEST ONLY — tries to seize the burn wallet from outside via ComponentManager set_access_rules /
+# set_owner_rule / set_state on an explicit target address. All must fail. Never published.
+
+[workspace]
+
+[dependencies]
+tari_template_lib = { version = "0.34" }
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = 's'
+lto = true
+codegen-units = 1
+panic = 'abort'
+strip = true
