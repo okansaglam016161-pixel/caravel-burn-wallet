@@ -9,7 +9,6 @@
 
 import {
   Network,
-  OotleWallet,
   StealthInput,
   StealthTransferStatement,
   TARI_RESOURCE_ADDRESS,
@@ -108,7 +107,8 @@ export async function burnFromPublic(
 // ── 2. Burn from private funds (stealth UTXOs) ───────────────────────────────
 
 /**
- * Burn `amount` µTARI from private funds. No account is needed.
+ * Burn `amount` µTARI from private funds. No account is needed, and the wallet's owner key neither
+ * signs nor receives anything, so the burn is not linked to your public account.
  *
  * `utxoIds` are stealth UTXOs this wallet owns (`utxo_…` substate ids, which your wallet already
  * tracks). They must add up to at least `amount` plus the fee; the rest comes back as a new private
@@ -128,18 +128,29 @@ export async function burnFromPrivate(
 ): Promise<BurnResult> {
   const crypto = new WasmStealthCrypto(Network.Esmeralda)
   const myAddress = await wallet.getAddress()
-  const myPublicKey = await wallet.getPublicKey()
   const viewSecret = await wallet.getViewSecret()
 
-  // Open each UTXO: its value and mask (from the view key) and the sender nonce (to sign for it).
+  // Open each UTXO: its value and mask (from the view key), the sender nonce (to sign for it) and
+  // its one-time spend key (the key that signature is made with).
   const utxos = await Promise.all(utxoIds.map(async (id) => {
     const substate = await provider.getSubstate(id)
     const parsed = parseSubstateUtxo(substate, id)
     const opened = parsed && await decryptOwnedUtxo(crypto, viewSecret, substate, id)
     if (!parsed || !opened) throw new Error(`${id} is spent, frozen, or not this wallet's`)
-    return { commitment: parsed.commitment, nonce: hexToBytes(parsed.body.public_nonce), mask: opened.mask, value: opened.value }
+    const auth = (substate.substate as { Utxo?: { output?: { auth?: { Key?: string } } } }).Utxo?.output?.auth
+    if (!auth?.Key) throw new Error(`${id} has no one-time spend key`)
+    return {
+      commitment: parsed.commitment,
+      nonce: hexToBytes(parsed.body.public_nonce),
+      spendKey: auth.Key.toLowerCase(),
+      mask: opened.mask,
+      value: opened.value,
+    }
   }))
   const total = utxos.reduce((sum, u) => sum + u.value, 0n)
+  // The revealed bucket can only go to a key that signs this transaction. Every input already signs
+  // with its own one-time key, so the first one receives it, and the owner key stays out entirely.
+  const receiver = utxos[0].spendKey
 
   const burnWalletInputs = [BURN_WALLET, ...await getVaultIdsForAccount(provider, BURN_WALLET)]
   const maxEpoch = await resolveMaxEpoch(provider)
@@ -154,8 +165,7 @@ export async function burnFromPrivate(
     const outputs = change > 0n
       ? [createOutput({ destination: myAddress, amount: change, resourceAddress: TARI_RESOURCE_ADDRESS })]
       : []
-    // The revealed output's receiver must be a signer of this transaction: you.
-    const { statement: outs, outputMask } = await crypto.generateOutputsStatement(outputs, { amount: revealed, receiver: myPublicKey })
+    const { statement: outs, outputMask } = await crypto.generateOutputsStatement(outputs, { amount: revealed, receiver: hexToBytes(receiver) })
     const ins = await crypto.buildInputsStatement(utxos.map((u) => new StealthInput(u.commitment)), 0n)
     const inputMask = await crypto.aggregateInputMasks(utxos.map((u) => u.mask))
     const proof = await signBalanceProof(crypto, inputMask, outputMask, ins, outs)
@@ -187,14 +197,16 @@ export async function burnFromPrivate(
   const sign = async (tx: UnsignedTransactionV1, dryRun: boolean) => {
     const resolved = await resolveTransaction(provider, tx)
     // Each UTXO is spent with a one-time key derived from its sender nonce, signed over the
-    // transaction WITHOUT the dry-run flag, plus your own key for the revealed output.
+    // transaction WITHOUT the dry-run flag. These are the transaction's only signatures.
     const unsignedJson = serializeUnsignedTx(resolved)
     const oneTime = []
     for (const u of utxos) {
       oneTime.push(await wallet.addStealthSignature(unsignedJson, u.nonce, sealKeypair.public_key, { crypto }))
     }
-    const me = new OotleWallet().registerKeyProvider(myAddress, wallet).setDefaultSigner(myAddress)
-    const signed = await signTransaction([me, fixedSignatures(oneTime)], { ...resolved, dry_run: dryRun }, sealKeypair)
+    if (!oneTime.some((sig) => String(sig.public_key).toLowerCase() === receiver)) {
+      throw new Error('The revealed bucket\'s receiver is not one of the signers')
+    }
+    const signed = await signTransaction([fixedSignatures(oneTime)], { ...resolved, dry_run: dryRun }, sealKeypair)
     return sealTransaction(signed)
   }
 

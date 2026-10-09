@@ -78,7 +78,8 @@ const provider = await connect() // https://ootle-indexer-a.tari.com
 const { fee, transactionId } = await burnFromPublic(provider, wallet, account, 5_000_000n) // 5 TARI
 
 // From private funds: spend these stealth UTXOs, reveal amount + fee into a bucket, deposit the
-// amount, pay the fee from the rest. The change comes back to you privately. No account is needed.
+// amount, pay the fee from the rest. The change comes back to you privately. No account is needed,
+// and the owner key neither signs nor receives: only the UTXOs' one-time keys sign.
 await burnFromPrivate(provider, wallet, ['utxo_0101…_<commitment>'], 5_000_000n)
 
 // { submit: false } stops after the dry runs and returns the exact fee: show it, then burn.
@@ -166,7 +167,7 @@ Run on 2026-10-09 against the live component. Every transaction was a dry run an
 | Example | Result |
 |---|---|
 | `burnFromPublic`, 1 TARI, test wallet's account | `Accept` at the exact fee, 2,370 µT |
-| `burnFromPrivate`, 1 TARI, from two of the test wallet's UTXOs | `Accept` at the exact fee, 10,307 µT |
+| `burnFromPrivate`, 1 TARI, from two of the test wallet's UTXOs, signed only by their one-time keys | `Accept` at the exact fee, 10,302 µT |
 | `burn.sh 1000000`, deployer's wallet daemon | `Accept` at the exact fee, 2,392 µT; one `Deposit` event from the burn wallet, `amount` = `1000000` |
 | `readBurnWallet` | 1,000,000,000 µT, `verified: true`, total deposited 1,000,000,000 µT |
 | `listDeposits` | 1 deposit, 1,000,000,000 µT in `c528fef5…` |
