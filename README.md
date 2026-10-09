@@ -48,10 +48,6 @@ Read the component from any indexer (`GET /substates/<component>`) and check:
 
 The full checklist is in [SECURITY.md](SECURITY.md#verify-it-yourself).
 
-## Rug bounty
-
-**10,000 $XTM** to anyone who moves any tTARI out of the burn wallet, or takes control of it. Please DM us first, before you post anything. Details in [the bounty post on X](LINK_TO_X_POST).
-
 ## Security
 
 It was red-teamed before and after launch, and nobody found a way to take, freeze or recall the TARI, or to become the owner.

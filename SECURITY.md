@@ -6,10 +6,10 @@ tried against it.
 See also: [docs/USING.md](docs/USING.md) for using it from an app, and
 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the published addresses and how to build and test.
 
-## Report a problem, and the rug bounty
+## Reporting a problem
 
-**10,000 $XTM** to anyone who moves any tTARI out of the burn wallet, or takes control of it.
-Please DM us first, before you post anything: details in [the bounty post on X](LINK_TO_X_POST).
+Found a way to move TARI out, take control, or change the rules? Please DM us first, before posting
+publicly.
 
 ## Rules, and what enforces them
 
