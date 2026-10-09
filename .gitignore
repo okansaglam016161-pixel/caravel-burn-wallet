@@ -20,3 +20,6 @@ scratchpad/
 .DS_Store
 .vscode/
 .idea/
+
+# examples
+node_modules/

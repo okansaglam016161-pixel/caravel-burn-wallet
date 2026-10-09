@@ -1,0 +1,19 @@
+{
+  "name": "caravel-burn-wallet-examples",
+  "private": true,
+  "type": "module",
+  "description": "Use the Caravel Burn Wallet from a JS/TS app: burn from public or private funds, read the balance and deposits.",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "prove": "node prove.ts"
+  },
+  "dependencies": {
+    "@tari-project/ootle": "0.8.0",
+    "@tari-project/ootle-indexer": "0.8.0",
+    "@tari-project/ootle-secret-key-wallet": "0.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.2",
+    "typescript": "~6.0.2"
+  }
+}
