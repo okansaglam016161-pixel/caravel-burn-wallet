@@ -8,9 +8,9 @@
     "prove": "node prove.ts"
   },
   "dependencies": {
-    "@tari-project/ootle": "0.8.0",
-    "@tari-project/ootle-indexer": "0.8.0",
-    "@tari-project/ootle-secret-key-wallet": "0.8.0"
+    "@tari-project/ootle": "0.9.0",
+    "@tari-project/ootle-indexer": "0.9.0",
+    "@tari-project/ootle-secret-key-wallet": "0.9.0"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",

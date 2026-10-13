@@ -1,7 +1,7 @@
 // Burn TARI into the official Caravel Burn Wallet from a JS/TS app, and read what it holds.
 //
 // Copy this file into your app. It needs @tari-project/ootle, @tari-project/ootle-indexer and
-// @tari-project/ootle-secret-key-wallet, all 0.8.0. Every amount is in µTARI (1 TARI = 1,000,000).
+// @tari-project/ootle-secret-key-wallet, all 0.9.0. Every amount is in µTARI (1 TARI = 1,000,000).
 //
 // Every burn goes the same way: build the transaction, dry-run it (free, nothing is spent) to learn
 // its exact fee, rebuild it paying exactly that fee, dry-run that, and only then submit. Pass

@@ -16,7 +16,7 @@ Open [caravellabs.net](https://caravellabs.net), go to **Burn** in the left menu
 
 ## Use it in your app
 
-From JS ([`examples/js/burn.ts`](examples/js/burn.ts), `@tari-project/ootle` 0.8):
+From JS ([`examples/js/burn.ts`](examples/js/burn.ts), `@tari-project/ootle` 0.9):
 
 ```ts
 const provider = await connect()

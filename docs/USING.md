@@ -39,7 +39,7 @@ only at that fee.
 
 [`examples/js/burn.ts`](../examples/js/burn.ts) is one file to copy into your app. It uses
 `@tari-project/ootle`, `@tari-project/ootle-indexer` and `@tari-project/ootle-secret-key-wallet`,
-all 0.8.0, and type-checks against them (`cd examples/js && npm install && npm run typecheck`).
+all 0.9.0, and type-checks against them (`cd examples/js && npm install && npm run typecheck`).
 
 ```ts
 import { burnFromPrivate, burnFromPublic, connect, listDeposits, readBurnWallet } from './burn.ts'
