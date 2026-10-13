@@ -23,13 +23,13 @@ commit_hash = "6009072531bfb7a94c6d7e719e5c03f5e7f94a98"
 tari_template_lib = { version = "0.34" }
 
 [dev-dependencies]
-tari_template_test_tooling = "0.45"
+tari_template_test_tooling = "0.46.0"
 
 [lib]
 crate-type = ["cdylib"]
 
 [build-dependencies]
-tari_ootle_template_build = "0.14"
+tari_ootle_template_build = "0.15.0"
 
 # Size optimisations for the published WASM — the same profile `tari build` / `tari publish` pass,
 # so a plain `cargo build --release` produces the same binary. The publish fee is priced on size.

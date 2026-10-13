@@ -65,7 +65,7 @@ cargo test
 cargo build --release --target wasm32-unknown-unknown
 ```
 
-Tooling: `tari_template_lib` 0.34, `tari_ootle_template_build` 0.14, `tari_template_test_tooling` 0.45.
+Tooling: `tari_template_lib` 0.34, `tari_ootle_template_build` 0.15, `tari_template_test_tooling` 0.46 (Ootle 0.46).
 
 ## Test against the on-chain binary
 
