@@ -10,6 +10,9 @@ fee, and gains no power over the component. Fees are paid from the fee account's
 manifest's default fee instruction is `account.pay_fee(max_fee)` on the daemon's DEFAULT account,
 so the script refuses to run unless the fee account is the default.
 
+Exit status: 0 on Accept; 3 if the transaction was submitted but has no final result yet (it may
+still land, so do not resubmit: check it first); 1 on any failure.
+
 The API key is read from the environment and only ever sent as a bearer token.
 """
 
@@ -27,8 +30,21 @@ DRY_RUN_MAX_FEE = 1_000_000
 # Head-room over the dry run's required fee for the real submission (also refunded if unused).
 FEE_MARGIN = 1.10
 
+# walletd 0.47+: a result wait that runs out of time is a JSON-RPC error with this code instead of a
+# timed-out result. The transaction is still in flight and may yet land, so it is not a failure.
+TRANSACTION_PENDING = 1003
+# Exit status for "submitted, no final result yet" (sys.exit with a message exits 1, a failure).
+EXIT_PENDING = 3
 
-def rpc(url, key, method, params):
+
+class RpcError(Exception):
+    def __init__(self, method, error):
+        super().__init__(f"{method} failed: {error}")
+        self.code = error.get("code") if isinstance(error, dict) else None
+
+
+def rpc(url, key, method, params, raise_codes=()):
+    """Call walletd. Any JSON-RPC error exits, except a code in `raise_codes`, which raises RpcError."""
     body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).encode()
     req = urllib.request.Request(
         url,
@@ -38,8 +54,19 @@ def rpc(url, key, method, params):
     with urllib.request.urlopen(req, timeout=600) as resp:
         out = json.load(resp)
     if out.get("error"):
-        sys.exit(f"{method} failed: {out['error']}")
+        err = RpcError(method, out["error"])
+        if err.code in raise_codes:
+            raise err
+        sys.exit(str(err))
     return out["result"]
+
+
+def still_pending(tx_id, status):
+    """Submitted, no final result yet. Not a failure, and never resubmitted: it may still land."""
+    print(f"PENDING       {tx_id} has no final result yet ({status}); it may still land.")
+    print("              Do not resubmit. Check it later with walletd's transactions.get_result:")
+    print(f'              {{"transaction_id": "{tx_id}"}}')
+    sys.exit(EXIT_PENDING)
 
 
 def manifest():
@@ -116,9 +143,14 @@ def main():
     tx_id = sent["transaction_id"]
     print(f"submitted     {tx_id} (max fee {max_fee} µT)")
 
-    waited = rpc(args.wallet, key, "transactions.wait_result", {"transaction_id": tx_id, "timeout_secs": 300})
-    if waited["timed_out"] or waited["result"] is None:
-        sys.exit(f"no final result for {tx_id} yet (status {waited['status']}); check it before retrying")
+    try:
+        waited = rpc(args.wallet, key, "transactions.wait_result", {"transaction_id": tx_id, "timeout_secs": 300},
+                     raise_codes=(TRANSACTION_PENDING,))
+    except RpcError:
+        still_pending(tx_id, "the wait timed out")
+    # walletd before 0.47 answers a timed-out wait with a result instead of error 1003.
+    if waited.get("timed_out") or waited.get("result") is None:
+        still_pending(tx_id, f"status {waited['status']}")
     component = new_burn_wallet_component(waited["result"])
     if component is None:
         sys.exit(f"{tx_id} did not Accept: {json.dumps(waited['result']['result'])[:500]}")

@@ -9,7 +9,7 @@ publish = false
 [workspace]
 
 [dependencies]
-tari_template_lib = { version = "0.34" }
+tari_template_lib = { version = "0.35" }
 minicbor = { version = "2.3", default-features = false, features = ["alloc", "derive"] }
 
 [lib]
