@@ -39,7 +39,8 @@ only at that fee.
 
 [`examples/js/burn.ts`](../examples/js/burn.ts) is one file to copy into your app. It uses
 `@tari-project/ootle`, `@tari-project/ootle-indexer` and `@tari-project/ootle-secret-key-wallet`,
-all 0.9.0, and type-checks against them (`cd examples/js && npm install && npm run typecheck`).
+all 0.11.0 (with `@tari-project/ootle-wasm` 0.47), and type-checks against them
+(`cd examples/js && npm install && npm run typecheck`).
 
 ```ts
 import { burnFromPrivate, burnFromPublic, connect, listDeposits, readBurnWallet } from './burn.ts'
@@ -117,10 +118,14 @@ calls your template, as `burn.ts` does, or the deposit can fail with `SubstateNo
 ## Reading the balance and the deposits
 
 Read the component and its vault from any indexer (`GET /substates/<id>`), and **only trust a read
-with `verified: true`**. Just after an epoch change an indexer can serve a value no committee member
-has proved yet, with `verified: false`. It may be stale, so retry or ask the other indexer rather
-than show it. `readBurnWallet` in `burn.ts` does this, and also checks the template address and
-that the owner rule is `None`:
+with `verified: true`**. Since Ootle 0.47 the answer is `{version, state, verified}`, with the value
+under `state.up.substate` (0.46 had it at `substate`) and `verified` still at the top level. A
+`state.down` answer, which only comes back for an `include_proof` request that names a version,
+means that version is spent: treat it like a 404. Just after an epoch change an indexer can serve a
+value no committee member has proved yet, with `verified: false`. It may be stale, so retry or ask
+the other indexer rather than show it. `readBurnWallet` in `burn.ts` does this (it reads the value
+with the SDK's `upSubstateValue`), and also checks the template address and that the owner rule is
+`None`:
 
 ```ts
 const { balance, totalDeposited } = await readBurnWallet(provider) // throws on an unverified read

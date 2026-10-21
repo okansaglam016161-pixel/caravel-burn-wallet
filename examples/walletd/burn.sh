@@ -7,6 +7,9 @@
 #
 # Amount in µTARI (1 TARI = 1,000,000). The fee is paid by the daemon's DEFAULT account, from its
 # public balance, on top of the amount. Needs curl and jq.
+#
+# Exit status: 0 on Accept; 3 if the burn was submitted but has no final result yet (it may still
+# land, so do not resubmit: check it first); 1 on any failure.
 set -euo pipefail
 
 AMOUNT=${1:?amount in µTARI}
@@ -16,11 +19,15 @@ BURN_WALLET=component_2e91fb78b73440dd114bdbb887d256d760fa3be3276d7b833f4ab1b23d
 TARI=resource_0101010101010101010101010101010101010101010101010101010101010101
 : "${TARI_WALLET_DAEMON_API_KEY:?set TARI_WALLET_DAEMON_API_KEY}"
 
+call() { # method params → the whole JSON-RPC response
+  curl -sf "$WALLET" -H 'content-type: application/json' \
+    -H "authorization: Bearer $TARI_WALLET_DAEMON_API_KEY" \
+    -d "$(jq -n --arg m "$1" --argjson p "$2" '{jsonrpc:"2.0", id:1, method:$m, params:$p}')"
+}
+
 rpc() {
   local out
-  out=$(curl -sf "$WALLET" -H 'content-type: application/json' \
-    -H "authorization: Bearer $TARI_WALLET_DAEMON_API_KEY" \
-    -d "$(jq -n --arg m "$1" --argjson p "$2" '{jsonrpc:"2.0", id:1, method:$m, params:$p}')")
+  out=$(call "$1" "$2")
   if jq -e .error <<<"$out" >/dev/null; then echo "$1: $(jq -c .error <<<"$out")" >&2; exit 1; fi
   jq .result <<<"$out"
 }
@@ -57,6 +64,15 @@ echo "dry run   Accept at max_fee $FEE"
 
 TX=$(submit "$FEE" false | jq -r .transaction_id)
 echo "submitted $TX"
-RESULT=$(rpc transactions.wait_result "$(jq -n --arg t "$TX" '{transaction_id:$t, timeout_secs:300}')")
+WAITED=$(call transactions.wait_result "$(jq -n --arg t "$TX" '{transaction_id:$t, timeout_secs:300}')")
+# A wait that runs out of time is not a failure: the burn may still land. walletd 0.47+ answers it
+# with JSON-RPC error 1003 (TransactionPending); older daemons with a result that timed out.
+if jq -e '.error.code == 1003 or (.error == null and (.result.timed_out == true or .result.result == null))' <<<"$WAITED" >/dev/null; then
+  echo "pending   $TX has no final result yet; it may still land. Do not resubmit. Check it later with" >&2
+  echo "          transactions.get_result {\"transaction_id\": \"$TX\"}" >&2
+  exit 3
+fi
+if jq -e .error <<<"$WAITED" >/dev/null; then echo "transactions.wait_result: $(jq -c .error <<<"$WAITED")" >&2; exit 1; fi
+RESULT=$(jq .result <<<"$WAITED")
 jq -e '.result.result | has("Accept")' <<<"$RESULT" >/dev/null || { echo "did not Accept: $(jq -c .result.result <<<"$RESULT" | head -c 400)" >&2; exit 1; }
 echo "ACCEPT    fee $(jq -r .final_fee <<<"$RESULT") µTARI"

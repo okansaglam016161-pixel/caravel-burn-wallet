@@ -1,7 +1,7 @@
 // Burn TARI into the official Caravel Burn Wallet from a JS/TS app, and read what it holds.
 //
 // Copy this file into your app. It needs @tari-project/ootle, @tari-project/ootle-indexer and
-// @tari-project/ootle-secret-key-wallet, all 0.9.0. Every amount is in µTARI (1 TARI = 1,000,000).
+// @tari-project/ootle-secret-key-wallet, all 0.11.0. Every amount is in µTARI (1 TARI = 1,000,000).
 //
 // Every burn goes the same way: build the transaction, dry-run it (free, nothing is spent) to learn
 // its exact fee, rebuild it paying exactly that fee, dry-run that, and only then submit. Pass
@@ -31,6 +31,7 @@ import {
   signTransaction,
   stealthTransferInstruction,
   stealthUtxoSubstateId,
+  upSubstateValue,
   type Signer,
   type TransactionEnvelope,
   type UnsignedTransactionV1,
@@ -137,7 +138,7 @@ export async function burnFromPrivate(
     const parsed = parseSubstateUtxo(substate, id)
     const opened = parsed && await decryptOwnedUtxo(crypto, viewSecret, substate, id)
     if (!parsed || !opened) throw new Error(`${id} is spent, frozen, or not this wallet's`)
-    const auth = (substate.substate as { Utxo?: { output?: { auth?: { Key?: string } } } }).Utxo?.output?.auth
+    const auth = (upSubstateValue(substate) as { Utxo?: { output?: { auth?: { Key?: string } } } } | null)?.Utxo?.output?.auth
     if (!auth?.Key) throw new Error(`${id} has no one-time spend key`)
     return {
       commitment: parsed.commitment,
@@ -231,10 +232,12 @@ export interface BurnWalletState {
  * ask the other indexer.
  */
 export async function readBurnWallet(provider: IndexerProvider): Promise<BurnWalletState> {
+  // Since Ootle 0.47 the value is under `state.up.substate`; upSubstateValue reads it (null if down).
   const component = await provider.getSubstate(BURN_WALLET)
   if (component.verified !== true) throw new Error('Unverified read of the burn wallet; try again')
-  if (!('Component' in component.substate)) throw new Error(`${BURN_WALLET} is not a component`)
-  const { header, body } = component.substate.Component
+  const componentValue = upSubstateValue(component)
+  if (!componentValue || !('Component' in componentValue)) throw new Error(`${BURN_WALLET} is not a component`)
+  const { header, body } = componentValue.Component
   // The checks that make it the burn wallet, not a look-alike: our template, and no owner.
   if (header.template_address !== BURN_WALLET_TEMPLATE) throw new Error('Not the Caravel Burn Wallet template')
   if (header.owner_rule !== 'None') throw new Error('The burn wallet must have no owner')
@@ -243,8 +246,9 @@ export async function readBurnWallet(provider: IndexerProvider): Promise<BurnWal
   const vault = vaultHex.startsWith('vault_') ? vaultHex : `vault_${vaultHex}`
   const vaultRead = await provider.getSubstate(vault)
   if (vaultRead.verified !== true) throw new Error('Unverified read of the burn wallet vault; try again')
-  if (!('Vault' in vaultRead.substate)) throw new Error(`${vault} is not a vault`)
-  const container = vaultRead.substate.Vault.resource_container
+  const vaultValue = upSubstateValue(vaultRead)
+  if (!vaultValue || !('Vault' in vaultValue)) throw new Error(`${vault} is not a vault`)
+  const container = vaultValue.Vault.resource_container
   if (!('Stealth' in container)) throw new Error('Unexpected vault type')
 
   const [, totalDeposited] = body.state as [unknown, number | string]

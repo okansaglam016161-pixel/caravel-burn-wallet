@@ -65,7 +65,7 @@ cargo test
 cargo build --release --target wasm32-unknown-unknown
 ```
 
-Tooling: `tari_template_lib` 0.34, `tari_ootle_template_build` 0.15, `tari_template_test_tooling` 0.46 (Ootle 0.46).
+Tooling: `tari_template_lib` 0.35, `tari_ootle_template_build` 0.16, `tari_template_test_tooling` 0.47 (Ootle 0.47).
 
 ## Test against the on-chain binary
 
@@ -79,7 +79,8 @@ cd template
 BURN_WALLET_WASM=/path/to/onchain.wasm cargo test -- --test-threads=1
 ```
 
-The binary is the `binary` field of `GET /substates/template_f6bb…0282` on either indexer.
+The binary is `state.up.substate.Template.binary` in `GET /substates/template_f6bb…0282` on either
+indexer (`substate.Template.binary` before Ootle 0.47).
 
 Part of [Caravel](https://github.com/okansaglam016161-pixel/caravel), alongside
 [Caravel Lotto](https://github.com/okansaglam016161-pixel/caravel-lotto).
